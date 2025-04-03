@@ -1,45 +1,38 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
-  AppBar, Toolbar, Typography, Button, Menu, MenuItem,
-  Box, TextField, InputAdornment, IconButton
+  Drawer, Box, Typography, Button, Menu, MenuItem,
+  TextField, IconButton, Toolbar, AppBar
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
+const drawerWidth = 260;
+
 export default function Home() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const [modelAnchorEl, setModelAnchorEl] = useState<null | HTMLElement>(null);
+  const [roleAnchorEl, setRoleAnchorEl] = useState<null | HTMLElement>(null);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'bot' }[]>([]);
-  const [modelAnchorEl, setModelAnchorEl] = useState<null | HTMLElement>(null);
-  const modelOpen = Boolean(modelAnchorEl);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const open = Boolean(anchorEl);
+  const modelOpen = Boolean(modelAnchorEl);
+  const roleOpen = Boolean(roleAnchorEl);
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleModelClick = (event: React.MouseEvent<HTMLElement>) => {
-    setModelAnchorEl(event.currentTarget);
-  };
-
-  const handleModelClose = () => {
-    setModelAnchorEl(null);
-  };
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
+  const handleClose = () => setAnchorEl(null);
+  const handleModelClick = (event: React.MouseEvent<HTMLElement>) => setModelAnchorEl(event.currentTarget);
+  const handleModelClose = () => setModelAnchorEl(null);
+  const handleRoleClick = (event: React.MouseEvent<HTMLElement>) => setRoleAnchorEl(event.currentTarget);
+  const handleRoleClose = () => setRoleAnchorEl(null);
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
-
     const userMsg = { text: message, sender: 'user' as const };
     setMessages((prev) => [...prev, userMsg]);
     setMessage('');
-
-    // Simulated bot response
     setTimeout(() => {
       const botReply = { text: `🤖 You said: "${message}"`, sender: 'bot' as const };
       setMessages((prev) => [...prev, botReply]);
@@ -58,154 +51,179 @@ export default function Home() {
   }, [messages]);
 
   return (
-    <Box sx={{ flexGrow: 1, pb: '120px' }}>
-      <AppBar position="static" color="default" elevation={1}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      {/* Top Header */}
+      <AppBar position="relative" color="default" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <img src='../../Assyst_Logo.png' className='logo_wrapper' />
-          </Box>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Box>
-              <Button
-                id="persona-button"
-                aria-controls={open ? 'persona-menu' : undefined}
-                aria-haspopup="true"
-                aria-expanded={open ? 'true' : undefined}
-                onClick={handleClick}
-                endIcon={<KeyboardArrowDownIcon />}
-              >
-                Persona
-              </Button>
-              <Menu
-                id="persona-menu"
-                anchorEl={anchorEl}
-                open={open}
-                onClose={handleClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              >
-                <MenuItem onClick={handleClose}>Teacher</MenuItem>
-                <MenuItem onClick={handleClose}>Professor</MenuItem>
-                <MenuItem onClick={handleClose}>Analyst</MenuItem>
-              </Menu>
-            </Box>
-            <Box>
-              <Button
-                id="model-button"
-                aria-controls={modelOpen ? 'model-menu' : undefined}
-                aria-haspopup="true"
-                aria-expanded={modelOpen ? 'true' : undefined}
-                onClick={handleModelClick}
-                endIcon={<KeyboardArrowDownIcon />}
-              >
-                LLM Model
-              </Button>
-              <Menu
-                id="model-menu"
-                anchorEl={modelAnchorEl}
-                open={modelOpen}
-                onClose={handleModelClose}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              >
-                <MenuItem onClick={handleModelClose}>GPT-4</MenuItem>
-                <MenuItem onClick={handleModelClose}>GPT-3.5</MenuItem>
-                <MenuItem onClick={handleModelClose}>Mistral</MenuItem>
-              </Menu>
-            </Box>
-          </Box>
+          <img src='../../Assyst_Logo.png' alt='Assyst Logo' style={{ height: 60, padding: 6 }} />
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#4b7737' }}>ASKME</Typography>
         </Toolbar>
       </AppBar>
 
-      {/* Welcome and Messages */}
-      <Box sx={{ maxWidth: '750px', mx: 'auto', mt: 4, p: 4, bgcolor: '#fff', borderRadius: '1rem' }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4, px: 2 }}>
-          <Typography variant="h4" gutterBottom>💬</Typography>
-          <Typography align="center" maxWidth="sm">
-            Welcome to the <b>Assyst</b> Chatbot.
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            Let’s get started!
-          </Typography>
-        </Box>
+      {/* Main Content Area */}
+      <Box sx={{ display: 'flex', flexGrow: 1, height: '100%' }}>
+        {/* Sidebar Drawer */}
+        <Drawer
+          variant="permanent"
+          sx={{
+            width: drawerWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerWidth,
+              boxSizing: 'border-box',
+              bgcolor: '#4b7737',
+              color: '#fff',
+              p: 2,
+              pt: 3,
+              top: '64px',
+              height: 'calc(100% - 64px)',
+            },
+          }}
+        >
+          {/* LLM Model Dropdown */}
+          <Box sx={{ mb: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              sx={{ color: '#fff', borderColor: '#fff' }}
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={handleModelClick}
+            >
+              LLM Model
+            </Button>
+            <Menu
+              anchorEl={modelAnchorEl}
+              open={modelOpen}
+              onClose={handleModelClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            >
+              <MenuItem onClick={handleModelClose}>Open AI</MenuItem>
+              <MenuItem onClick={handleModelClose}>Mistral AI</MenuItem>
+              <MenuItem onClick={handleModelClose}>LLaMA</MenuItem>
+              <MenuItem onClick={handleModelClose}>Deepseek AI</MenuItem>
+            </Menu>
+          </Box>
 
+          {/* Roles Dropdown */}
+          <Box sx={{ mb: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              sx={{ color: '#fff', borderColor: '#fff' }}
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={handleRoleClick}
+            >
+              Roles
+            </Button>
+            <Menu
+              anchorEl={roleAnchorEl}
+              open={roleOpen}
+              onClose={handleRoleClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+            >
+              <MenuItem onClick={handleRoleClose}>Analyst</MenuItem>
+              <MenuItem onClick={handleRoleClose}>Developer</MenuItem>
+            </Menu>
+          </Box>
 
-        {messages.map((msg, idx) => (
+          <Button fullWidth variant="contained" sx={{ bgcolor: '#fff', color: '#4b7737', mb: 1 }} onClick={() => setMessages([])}>Clear Chat</Button>
+          <Button fullWidth variant="contained" sx={{ bgcolor: '#fff', color: '#4b7737' }}>Report Error</Button>
+        </Drawer>
+
+        {/* Chat + Messages */}
+        <Box sx={{ flexGrow: 1, position: 'relative', pb: '120px', backgroundColor: '#f4f4f4', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 200'%3E%3Ctext x='0' y='150' font-size='160' fill='rgba(0, 102, 204, 0.06)' font-family='Arial, Helvetica, sans-serif' font-weight='bold'%3EASK ME%3C/text%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(50% + 130px) center', backgroundSize: 'contain' }}>
+          <Box sx={{ maxWidth: '750px', mx: 'auto', mt: 4, p: 4, bgcolor: '#fff', borderRadius: '1rem' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4, px: 2 }}>
+              {/* <Typography variant="h4" gutterBottom>💬</Typography> */}
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                Welcome!
+              </Typography>
+              <Typography align="center" maxWidth="sm">
+                How can <b>ASKME</b> help you today?
+              </Typography>
+
+            </Box>
+
+            {messages.map((msg, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  display: 'flex',
+                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                  mb: 1,
+                }}
+              >
+                <Box
+                  sx={{
+                    bgcolor: msg.sender === 'user' ? '#e6f4ea' : '#f1f1f1',
+                    px: 2,
+                    py: 1,
+                    borderRadius: '16px',
+                    maxWidth: '80%',
+                    fontSize: '0.95rem',
+                  }}
+                >
+                  {msg.text}
+                </Box>
+              </Box>
+            ))}
+            <div ref={messagesEndRef} />
+          </Box>
+
+          {/* Chat Input - Fixed Bottom */}
           <Box
-            key={idx}
             sx={{
-              display: 'flex',
-              justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-              mb: 1,
+              position: 'fixed',
+              bottom: 0,
+              left: drawerWidth,
+              right: 0,
+              bgcolor: '#f9f9f9',
+              borderTop: '1px solid #e0e0e0',
+              px: 2,
+              py: 1.5,
+              zIndex: 10,
             }}
           >
             <Box
               sx={{
-                bgcolor: msg.sender === 'user' ? '#e6f4ea' : '#f1f1f1',
+                minHeight: '100px',
+                maxWidth: '720px',
+                mx: 'auto',
+                display: 'flex',
+                alignItems: 'center',
+                border: '1px solid #ccc',
+                borderRadius: '24px',
+                backgroundColor: '#fff',
                 px: 2,
-                py: 1,
-                borderRadius: '16px',
-                maxWidth: '80%',
-                fontSize: '0.95rem',
+                py: 0.5,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                '&:focus-within': {
+                  borderColor: '#888',
+                },
               }}
             >
-              {msg.text}
+              <TextField
+                multiline
+                maxRows={4}
+                fullWidth
+                placeholder="Send a message..."
+                variant="standard"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                InputProps={{
+                  disableUnderline: true,
+                  sx: { fontSize: '1rem', px: 1 },
+                }}
+                sx={{ flex: 1 }}
+              />
+              <IconButton onClick={handleSendMessage} sx={{ ml: 1 }}>
+                <SendIcon />
+              </IconButton>
             </Box>
           </Box>
-        ))}
-        <div ref={messagesEndRef} />
-      </Box>
-
-      {/* Chat Input - Fixed Bottom */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          width: '100%',
-          bgcolor: '#f9f9f9',
-          borderTop: '1px solid #e0e0e0',
-          px: 2,
-          py: 1.5,
-          zIndex: 10,
-        }}
-      >
-        <Box
-          sx={{
-            minHeight: '100px',
-            maxWidth: '720px',
-            mx: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            border: '1px solid #ccc',
-            borderRadius: '24px',
-            backgroundColor: '#fff',
-            px: 2,
-            py: 0.5,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            '&:focus-within': {
-              borderColor: '#888',
-            },
-          }}
-        >
-          <TextField
-            multiline
-            maxRows={4}
-            fullWidth
-            placeholder="Send a message..."
-            variant="standard"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            InputProps={{
-              disableUnderline: true,
-              sx: { fontSize: '1rem', px: 1 },
-            }}
-            sx={{ flex: 1 }}
-          />
-          <IconButton onClick={handleSendMessage} sx={{ ml: 1 }}>
-            <SendIcon />
-          </IconButton>
         </Box>
       </Box>
     </Box>
