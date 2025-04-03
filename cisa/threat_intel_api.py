@@ -12,9 +12,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables and set OpenAI API key
 load_dotenv()
+metadata_filename = "metadata.json"
+model_name = 'all-MiniLM-L6-v2'
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = FastAPI()
+index_filename = "my_faiss_index.index"
 
 # Allow CORS for frontend communication
 app.add_middleware(
@@ -26,8 +29,10 @@ app.add_middleware(
 )
 
 # Initialize FAISS index
-embedding_dim = 99 # Adjust based on OpenAI embedding model
-index = faiss.IndexFlatL2(embedding_dim)
+embedding_dim = 3072 # Adjust based on OpenAI embedding model
+# n_clusters = 100
+index = faiss.IndexFlatL2(embedding_dim)    
+# index = faiss.IndexIVFFlat(quantizer, embedding_dim, n_clusters, faiss.METRIC_L2)
 db_metadata = []  # List to store metadata for each record
 
 # Function to generate an embedding from text using OpenAI
@@ -42,6 +47,7 @@ def get_embedding(text: str):
 @app.post("/upload-csv/")
 async def upload_csv(file: UploadFile = File(...)):
     try:
+        breakpoint()
         # Ensure the file pointer is at the beginning
         file.file.seek(0)
         
@@ -55,7 +61,7 @@ async def upload_csv(file: UploadFile = File(...)):
                 status_code=400, 
                 detail="Unsupported file type. Please upload a CSV or XLSX file."
             )
-        
+
         # Validate required columns exist
         if "Database" not in df.columns or "Description" not in df.columns:
             raise HTTPException(
@@ -78,8 +84,12 @@ async def upload_csv(file: UploadFile = File(...)):
                 "Link": row.get("Link", "")
             })
         # Convert embeddings list to NumPy array and add to the FAISS index
+        # Save metadata to a JSON file
+        with open(metadata_filename, 'w') as f:
+            json.dump(db_metadata, f)
         embeddings_np = np.array(embeddings).astype('float32')
-        index.add(embeddings_np)
+        index.add(embeddings_np)    
+        faiss.write_index(index, index_filename) 
         
         return {"message": f"Successfully loaded {len(embeddings)} records into FAISS."}
     
@@ -94,24 +104,26 @@ class QueryRequest(BaseModel):
 @app.post("/query/")
 async def query_direct(data: QueryRequest):
     try:
-        # Ensure that metadata exists (i.e. a file has been uploaded and processed)
-        if not db_metadata:
-            raise HTTPException(
-                status_code=400,
-                detail="No database metadata available. Please upload a file first."
-            )
-        
+        local_index = faiss.read_index(index_filename)
         # Format the catalog text from the stored metadata
+        local_db_metadata = json.load(open(metadata_filename))
+        query_vectors = get_embedding(data.query)
+        encoded_vectors = np.array([query_vectors]).astype('float32')
+        distances, indices= local_index.search(encoded_vectors, 5)
+        most_accurate_data = []
+        for i in range(0,5):
+            most_accurate_data.append(local_db_metadata[indices[0][i]])
         catalog_text = "\n\n".join(
             f"Database: {item['Database']}\nSchema: {item.get('Schema', '')}\nTable: {item.get('Table', '')}\nDescription: {item['Description']}\nLink: {item.get('Link', '')}"
-            for item in db_metadata
+            for item in most_accurate_data
         )
         
         # Build the prompt for GPT-4
         prompt = f"""
         You are a database catalog assistant. Use the provided database NAME AND DESCRIPTION to answer queries.
         If the query matches a database, description, schema, or table, provide relevant details.
-        If it does not match anything, respond with "I am sorry, the database you are looking for does not exist."
+        If it does not match anything, respond with "I am sorry, the database you are looking for does not exist.
+        Please make sure to make your response human-readable and concise."
 
         Here is the database catalog:
 
@@ -130,6 +142,7 @@ async def query_direct(data: QueryRequest):
         return {"response": gpt_response.choices[0].message.content}
     
     except Exception as e:
+        breakpoint()
         raise HTTPException(status_code=500, detail=str(e))
 
 # Run the API
