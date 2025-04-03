@@ -26,7 +26,7 @@ app.add_middleware(
 )
 
 # Initialize FAISS index
-embedding_dim = 3072 # Adjust based on OpenAI embedding model
+embedding_dim = 99 # Adjust based on OpenAI embedding model
 index = faiss.IndexFlatL2(embedding_dim)
 db_metadata = []  # List to store metadata for each record
 
