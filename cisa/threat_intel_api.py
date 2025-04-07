@@ -81,7 +81,8 @@ async def upload_csv(file: UploadFile = File(...)):
                 "Description": row["Description"],
                 "Schema": row.get("Schema", ""),
                 "Table": row.get("Table", ""),
-                "Link": row.get("Link", "")
+                "Link": row.get("Link", ""),
+                "CVE_ID" : row.get("CVE_ID", ""),
             })
         # Convert embeddings list to NumPy array and add to the FAISS index
         # Save metadata to a JSON file
@@ -114,14 +115,16 @@ async def query_direct(data: QueryRequest):
         for i in range(0,5):
             most_accurate_data.append(local_db_metadata[indices[0][i]])
         catalog_text = "\n\n".join(
-            f"Database: {item['Database']}\nSchema: {item.get('Schema', '')}\nTable: {item.get('Table', '')}\nDescription: {item['Description']}\nLink: {item.get('Link', '')}"
+            f"Database: {item['Database']}\nSchema: {item.get('Schema', '')}\nTable: {item.get('Table', '')}\nDescription: {item['Description']}\nLink: {item.get('Link', '')}\nCVE: {item.get('CVE_ID', '')}\n"
             for item in most_accurate_data
         )
         
         # Build the prompt for GPT-4
         prompt = f"""
-        You are a database catalog assistant. Use the provided database NAME AND DESCRIPTION to answer queries.
-        If the query matches a database, description, schema, or table, provide relevant details.
+        You are an assistant. Use the provided database name or description or any column names (Cve for example) to answer queries. Don't rely just on the database names clients give you.
+        Use any related information in the training data to provide relevant details.
+        If the query matches a database, description, schema, or table, or any related info (cve for example) in the training data provide relevant details.
+        Always provide data in the format: Datbase: <database name>, Schema: <schema name>, Table: <table name>, Description: <description>, Link: <link>, CVE_ID: <cve id>.
         If it does not match anything, respond with "I am sorry, the database you are looking for does not exist.
         Please make sure to make your response human-readable and concise."
 
@@ -134,6 +137,7 @@ async def query_direct(data: QueryRequest):
         
         gpt_response = client.chat.completions.create(
             model="gpt-4",
+            temperature=0.2,
             messages=[
                 {"role": "system", "content": "You are an AI assistant."},
                 {"role": "user", "content": prompt}

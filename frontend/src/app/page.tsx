@@ -34,7 +34,7 @@ export default function Home() {
     setMessages((prev) => [...prev, userMsg]);
     setMessage('');
     setTimeout(async () => {
-      const response = await fetch('http://0.0.0.0:8000/query/', {
+      const response = await fetch(' http://localhost:8000/query/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
