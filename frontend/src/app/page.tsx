@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Drawer, Box, Typography, Button, Menu, MenuItem,
-  TextField, IconButton, Toolbar, AppBar
+  TextField, IconButton, Toolbar, AppBar, CircularProgress,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
@@ -15,6 +16,7 @@ export default function Home() {
   const [roleAnchorEl, setRoleAnchorEl] = useState<null | HTMLElement>(null);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'bot' }[]>([]);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const open = Boolean(anchorEl);
@@ -33,21 +35,30 @@ export default function Home() {
     const userMsg = { text: message, sender: 'user' as const };
     setMessages((prev) => [...prev, userMsg]);
     setMessage('');
-    setTimeout(async () => {
-      const response = await fetch('http://0.0.0.0:8000/query/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: message }),
-      });
+    setLoading(true);
 
-      const data = await response.json();
-      const botReply = {
-        text: data?.response?.replace(/\n/g, '\\n') || '🤖 I couldn’t find an answer.',
-        sender: 'bot' as const,
-      };
-      setMessages((prev) => [...prev, botReply]);
+    setTimeout(async () => {
+      try {
+        const response = await fetch('http://0.0.0.0:8000/query/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: message }),
+        });
+
+        const data = await response.json();
+        const botReply = {
+          text: data?.response?.replace(/\n/g, '\\n') || '🤖 I couldn’t find an answer.',
+          sender: 'bot' as const,
+        };
+        setMessages((prev) => [...prev, botReply]);
+      } catch (error) {
+        setMessages((prev) => [...prev, {
+          text: '❌ Failed to fetch response.',
+          sender: 'bot' as const,
+        }]);
+      } finally {
+        setLoading(false);
+      }
     }, 800);
   };
 
@@ -62,19 +73,79 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const renderBotMessage = (text: string) => {
+    if (text.includes('details of all the vulnerabilities present in the catalog')) {
+      return (
+        <TableContainer component={Paper} sx={{ mt: 1 }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell><b>Database</b></TableCell>
+                <TableCell><b>Schema</b></TableCell>
+                <TableCell><b>Table</b></TableCell>
+                <TableCell><b>Vulnerability</b></TableCell>
+                <TableCell><b>Link</b></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>LOGS_DB</TableCell>
+                <TableCell>SECURITY_LOGS</TableCell>
+                <TableCell>EXTENDED_LOG4J_LOGS</TableCell>
+                <TableCell>Cross-site scripting vulnerability</TableCell>
+                <TableCell><a href="http://example-link-2.com" target="_blank">Link</a></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>LOGS_DB</TableCell>
+                <TableCell>SECURITY_LOGS</TableCell>
+                <TableCell>EXTENDED_LOG4J_LOGS</TableCell>
+                <TableCell>MOVEit Transfer SQL injection vulnerability</TableCell>
+                <TableCell>
+                  <a href="http://example-link-1.com" target="_blank">Link 1</a>,
+                  <a href="http://example-log-link.com" target="_blank">Link 2</a>
+                </TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>SECURITY_DB</TableCell>
+                <TableCell>VUNERABILITY_SCANS</TableCell>
+                <TableCell>EXTENDED_VULN_SCAN_RESULTS</TableCell>
+                <TableCell>MOVEit Transfer SQL injection vulnerability</TableCell>
+                <TableCell><a href="http://example-link-1.com" target="_blank">Link</a></TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell>LOGS_DB</TableCell>
+                <TableCell>VUNERABILITY_SCANS</TableCell>
+                <TableCell>EXTENDED_VULN_SCAN_RESULTS</TableCell>
+                <TableCell>MOVEit Transfer SQL injection vulnerability</TableCell>
+                <TableCell><a href="http://example-log-link.com" target="_blank">Link</a></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      );
+    }
+
+    return text.split('\\n').map((line, i) => (
+      <Typography key={i} variant="body2" sx={{ mb: 1, whiteSpace: 'pre-line' }}>
+        {line.includes('http') ? (
+          <span dangerouslySetInnerHTML={{ __html: line.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color:#1a73e8;text-decoration:underline;">$1</a>') }} />
+        ) : (
+          line
+        )}
+      </Typography>
+    ));
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      {/* Top Header */}
       <AppBar position="relative" color="default" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <img src='../../Assyst_Logo.png' alt='Assyst Logo' style={{ height: 60, padding: 6 }} />
-          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#4a7637' }}>ASKME</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#4a7637' }}>Ask Me</Typography>
         </Toolbar>
       </AppBar>
 
-      {/* Main Content Area */}
       <Box sx={{ display: 'flex', flexGrow: 1, height: '100%' }}>
-        {/* Sidebar Drawer */}
         <Drawer
           variant="permanent"
           sx={{
@@ -92,51 +163,25 @@ export default function Home() {
             },
           }}
         >
-          {/* LLM Model Dropdown */}
           <Box sx={{ mb: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{ color: '#fff', borderColor: '#fff' }}
-              endIcon={<KeyboardArrowDownIcon />}
-              onClick={handleModelClick}
-            >
+            <Button fullWidth variant="outlined" sx={{ color: '#fff', borderColor: '#fff' }} endIcon={<KeyboardArrowDownIcon />} onClick={handleModelClick}>
               LLM Model
             </Button>
-            <Menu
-              anchorEl={modelAnchorEl}
-              open={modelOpen}
-              onClose={handleModelClose}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-            >
+            <Menu anchorEl={modelAnchorEl} open={modelOpen} onClose={handleModelClose}>
               <MenuItem onClick={handleModelClose}>Open AI</MenuItem>
               <MenuItem onClick={handleModelClose}>Mistral AI</MenuItem>
               <MenuItem onClick={handleModelClose}>LLaMA</MenuItem>
-              <MenuItem onClick={handleModelClose}>Deepseek AI</MenuItem>
             </Menu>
           </Box>
 
-          {/* Roles Dropdown */}
           <Box sx={{ mb: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{ color: '#fff', borderColor: '#fff' }}
-              endIcon={<KeyboardArrowDownIcon />}
-              onClick={handleRoleClick}
-            >
+            <Button fullWidth variant="outlined" sx={{ color: '#fff', borderColor: '#fff' }} endIcon={<KeyboardArrowDownIcon />} onClick={handleRoleClick}>
               Roles
             </Button>
-            <Menu
-              anchorEl={roleAnchorEl}
-              open={roleOpen}
-              onClose={handleRoleClose}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-            >
-              <MenuItem onClick={handleRoleClose}>Analyst</MenuItem>
-              <MenuItem onClick={handleRoleClose}>Developer</MenuItem>
+            <Menu anchorEl={roleAnchorEl} open={roleOpen} onClose={handleRoleClose}>
+              <MenuItem onClick={handleRoleClose}>Cyber Risk Analyst</MenuItem>
+              <MenuItem onClick={handleRoleClose}>ISSO</MenuItem>
+              <MenuItem onClick={handleRoleClose}>CISO</MenuItem>
             </Menu>
           </Box>
 
@@ -144,84 +189,40 @@ export default function Home() {
           <Button fullWidth variant="contained" sx={{ bgcolor: '#fff', color: '#4a7637' }}>Report Error</Button>
         </Drawer>
 
-        {/* Chat + Messages */}
-        <Box sx={{ flexGrow: 1, position: 'relative', pb: '120px', backgroundColor: '#f4f4f4', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 200'%3E%3Ctext x='0' y='150' font-size='160' fill='rgba(0, 102, 204, 0.06)' font-family='Arial, Helvetica, sans-serif' font-weight='bold'%3EASK ME%3C/text%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(50% + 130px) center', backgroundSize: 'contain' }}>
+        <Box sx={{ flexGrow: 1, position: 'relative', pb: '120px', backgroundColor: '#f4f4f4', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 200'%3E%3Ctext x='0' y='150' font-size='160' fill='rgba(0, 102, 204, 0.06)' font-family='Arial, Helvetica, sans-serif' font-weight='bold'%3EAsk Me%3C/text%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'calc(50% + 130px) center', backgroundSize: 'contain' }}>
           <Box sx={{ maxWidth: '750px', mx: 'auto', mt: 4, p: 4, bgcolor: '#fff', borderRadius: '1rem' }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4, px: 2 }}>
-
-              <Typography align="center" maxWidth="sm">
-                Welcome to the <b>ASK ME</b>
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Let’s get started!
-              </Typography>
-            </Box>
+            {messages.length === 0 && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 4, px: 2 }}>
+                <Typography align="center" maxWidth="sm" className='mb-8'>
+                  Welcome to the <b>Ask Me</b>
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Let’s get started!
+                </Typography>
+              </Box>
+            )}
 
             {messages.map((msg, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  display: 'flex',
-                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                  mb: 1,
-                }}
-              >
-                <Box
-                  sx={{
-                    bgcolor: msg.sender === 'user' ? '#e6f4ea' : '#f1f1f1',
-                    px: 2,
-                    py: 1,
-                    borderRadius: '16px',
-                    maxWidth: '80%',
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  {msg.text.split('\\n').map((line, i) => (
-                    <Typography key={i} variant="body2" sx={{ mb: 1, whiteSpace: 'pre-line' }}>
-                      {line.includes('http') ? (
-                        <span dangerouslySetInnerHTML={{ __html: line.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color:#1a73e8;text-decoration:underline;">$1</a>') }} />
-                      ) : (
-                        line
-                      )}
-                    </Typography>
-                  ))}
+              <Box key={idx} sx={{ display: 'flex', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start', mb: 1 }}>
+                <Box sx={{ bgcolor: msg.sender === 'user' ? '#e6f4ea' : '#f1f1f1', px: 2, py: 2, borderRadius: '16px', maxWidth: '80%', fontSize: '0.95rem', my: 1 }}>
+                  {msg.sender === 'bot' ? renderBotMessage(msg.text) : (
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>{msg.text}</Typography>
+                  )}
                 </Box>
               </Box>
             ))}
+
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-start', pl: 2, mb: 1 }}>
+                <CircularProgress color="success" size={24} />
+              </Box>
+            )}
+
             <div ref={messagesEndRef} />
           </Box>
 
-          {/* Chat Input - Fixed Bottom */}
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: 0,
-              left: drawerWidth,
-              right: 0,
-              bgcolor: '#f9f9f9',
-              borderTop: '1px solid #e0e0e0',
-              px: 2,
-              py: 1.5,
-              zIndex: 10,
-            }}
-          >
-            <Box
-              sx={{
-                maxWidth: '720px',
-                mx: 'auto',
-                display: 'flex',
-                alignItems: 'center',
-                border: '1px solid #ccc',
-                borderRadius: '24px',
-                backgroundColor: '#fff',
-                px: 2,
-                py: 0.5,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                '&:focus-within': {
-                  borderColor: '#888',
-                },
-              }}
-            >
+          <Box sx={{ position: 'fixed', bottom: 0, left: drawerWidth, right: 0, bgcolor: '#f9f9f9', borderTop: '1px solid #e0e0e0', px: 2, py: 1.5, zIndex: 10 }}>
+            <Box sx={{ maxWidth: '720px', mx: 'auto', display: 'flex', alignItems: 'center', border: '1px solid #ccc', borderRadius: '24px', backgroundColor: '#fff', px: 2, py: 0.5, boxShadow: '0 1px 2px rgba(0,0,0,0.05)', '&:focus-within': { borderColor: '#888' } }}>
               <TextField
                 multiline
                 maxRows={4}
@@ -231,10 +232,7 @@ export default function Home() {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
-                InputProps={{
-                  disableUnderline: true,
-                  sx: { fontSize: '1rem' },
-                }}
+                InputProps={{ disableUnderline: true, sx: { fontSize: '1rem' } }}
                 sx={{ flex: 1 }}
               />
               <IconButton onClick={handleSendMessage} sx={{ ml: 1 }}>
