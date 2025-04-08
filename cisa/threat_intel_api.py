@@ -129,7 +129,22 @@ async def query_direct(data: QueryRequest):
             f"Database: {item['Database']}\nSchema: {item.get('Schema', '')}\nTable: {item.get('Table', '')}\nDescription: {item['Description']}\nLink: {item.get('Link', '')}\nCVE: {item.get('CVE_ID', '')}\nSeverity: {item.get('Severity', '')}\nStatus: {item.get('Status', '')}\n"
             for item in most_accurate_data
         )
-        
+                
+        # Processing logic
+        entries = catalog_text.strip().split('\n\n\n')
+
+        response_list = []
+
+        for entry in entries:
+            record = {}
+            lines = entry.strip().split('\n')
+            for line in lines:
+                if ':' in line:
+                    key, value = line.split(':', 1)
+                    record[key.strip()] = value.strip()
+            if record:
+                response_list.append(record)
+
         # Build the prompt for GPT-4
         prompt = f"""
         Role asking the query: {data.role}
@@ -156,8 +171,7 @@ async def query_direct(data: QueryRequest):
                 {"role": "user", "content": prompt}
             ]
         )
-        return {"response": gpt_response.choices[0].message.content}
-    
+        return {"response": gpt_response.choices[0].message.content, "rag_response": response_list}
     except Exception as e:
         #breakpoint()
         raise HTTPException(status_code=500, detail=str(e))
