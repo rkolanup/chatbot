@@ -146,21 +146,20 @@ async def query_direct(data: QueryRequest):
                 response_list.append(record)
 
         # Build the prompt for GPT-4
+
         prompt = f"""
-        Role asking the query: {data.role}
-        You are an assistant. Use the provided database name or description or any column names (Cve for example) to answer queries. Don't rely just on the database names clients give you.
-        Use any related information in the training data to provide relevant details.
-        If the query matches a database, description, schema, or table, or any related info (cve for example) in the training data provide relevant details.
-        Always provide data in the format: Database: <database name>, Schema: <schema name>, Table: <table name>, Description: <description>, Link: <link>, Severity: <severity>, Status: <status>.
-        Provide a high-level summary along with the data format in a paragraph starting with 'As a {data.role}'.
-        If it does not match anything, respond with "I am sorry, the database you are looking for does not exist.
-        Please make sure to make your response human-readable and concise."
+        You are a threat intelligence agent assisting a user with the role: {data.role}.
 
-        Here is the database catalog:
+        Your task is to analyze the provided database catalog and answer the following query in a concise, human-readable summary. Begin your response with: "As a {data.role}, ..." and keep it high-level and clear.
 
+        If the query does not match anything in the catalog, respond with:
+        "I am sorry, the database you are looking for does not exist. Please update the query."
+
+        Database Catalog:
         {catalog_text}
 
-        Query: {data.query}
+        User Query:
+        {data.query}
         """
         
         gpt_response = client.chat.completions.create(
