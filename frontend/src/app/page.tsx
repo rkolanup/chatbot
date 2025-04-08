@@ -89,7 +89,7 @@ export default function Home() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <AppBar position="relative" color="default" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+      <AppBar position="fixed" color="default" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <img src='../../Assyst_Logo.png' alt='Assyst Logo' style={{ height: 60, padding: 6 }} />
           <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#4a7637' }}>Ask Me</Typography>
