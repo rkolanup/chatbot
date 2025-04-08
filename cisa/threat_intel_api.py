@@ -43,6 +43,14 @@ def get_embedding(text: str):
     )  
     return response.data[0].embedding
 
+@app.get("/home/")
+async def home():
+    try:        
+        return {"message": f"Threat Intelligence API up and running."}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # New endpoint to upload a CSV or XLSX file and index it into FAISS
 @app.post("/upload-csv/")
 async def upload_csv(file: UploadFile = File(...)):
@@ -83,6 +91,8 @@ async def upload_csv(file: UploadFile = File(...)):
                 "Table": row.get("Table", ""),
                 "Link": row.get("Link", ""),
                 "CVE_ID" : row.get("CVE_ID", ""),
+                "Severity" : row.get("Severity", ""),
+                "Status" : row.get("Status", "")
             })
         # Convert embeddings list to NumPy array and add to the FAISS index
         # Save metadata to a JSON file
@@ -100,6 +110,7 @@ async def upload_csv(file: UploadFile = File(...)):
 # Pydantic model for query input
 class QueryRequest(BaseModel):
     query: str
+    role: str
 
 # Endpoint to handle queries using the FAISS index
 @app.post("/query/")
@@ -115,16 +126,18 @@ async def query_direct(data: QueryRequest):
         for i in range(0,5):
             most_accurate_data.append(local_db_metadata[indices[0][i]])
         catalog_text = "\n\n".join(
-            f"Database: {item['Database']}\nSchema: {item.get('Schema', '')}\nTable: {item.get('Table', '')}\nDescription: {item['Description']}\nLink: {item.get('Link', '')}\nCVE: {item.get('CVE_ID', '')}\n"
+            f"Database: {item['Database']}\nSchema: {item.get('Schema', '')}\nTable: {item.get('Table', '')}\nDescription: {item['Description']}\nLink: {item.get('Link', '')}\nCVE: {item.get('CVE_ID', '')}\nSeverity: {item.get('Severity', '')}\nStatus: {item.get('Status', '')}\n"
             for item in most_accurate_data
         )
         
         # Build the prompt for GPT-4
         prompt = f"""
+        Role asking the query: {data.role}
         You are an assistant. Use the provided database name or description or any column names (Cve for example) to answer queries. Don't rely just on the database names clients give you.
         Use any related information in the training data to provide relevant details.
         If the query matches a database, description, schema, or table, or any related info (cve for example) in the training data provide relevant details.
-        Always provide data in the format: Datbase: <database name>, Schema: <schema name>, Table: <table name>, Description: <description>, Link: <link>, CVE_ID: <cve id>.
+        Always provide data in the format: Database: <database name>, Schema: <schema name>, Table: <table name>, Description: <description>, Link: <link>, Severity: <severity>, Status: <status>.
+        Provide a high-level summary along with the data format in a paragraph starting with 'As a {data.role}'.
         If it does not match anything, respond with "I am sorry, the database you are looking for does not exist.
         Please make sure to make your response human-readable and concise."
 
@@ -146,7 +159,7 @@ async def query_direct(data: QueryRequest):
         return {"response": gpt_response.choices[0].message.content}
     
     except Exception as e:
-        breakpoint()
+        #breakpoint()
         raise HTTPException(status_code=500, detail=str(e))
 
 # Run the API
