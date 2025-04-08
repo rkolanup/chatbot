@@ -74,56 +74,7 @@ export default function Home() {
   }, [messages]);
 
   const renderBotMessage = (text: string) => {
-    if (text.includes('details of all the vulnerabilities present in the catalog')) {
-      return (
-        <TableContainer component={Paper} sx={{ mt: 1 }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell><b>Database</b></TableCell>
-                <TableCell><b>Schema</b></TableCell>
-                <TableCell><b>Table</b></TableCell>
-                <TableCell><b>Vulnerability</b></TableCell>
-                <TableCell><b>Link</b></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell>LOGS_DB</TableCell>
-                <TableCell>SECURITY_LOGS</TableCell>
-                <TableCell>EXTENDED_LOG4J_LOGS</TableCell>
-                <TableCell>Cross-site scripting vulnerability</TableCell>
-                <TableCell><a href="http://example-link-2.com" target="_blank">Link</a></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>LOGS_DB</TableCell>
-                <TableCell>SECURITY_LOGS</TableCell>
-                <TableCell>EXTENDED_LOG4J_LOGS</TableCell>
-                <TableCell>MOVEit Transfer SQL injection vulnerability</TableCell>
-                <TableCell>
-                  <a href="http://example-link-1.com" target="_blank">Link 1</a>,
-                  <a href="http://example-log-link.com" target="_blank">Link 2</a>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>SECURITY_DB</TableCell>
-                <TableCell>VUNERABILITY_SCANS</TableCell>
-                <TableCell>EXTENDED_VULN_SCAN_RESULTS</TableCell>
-                <TableCell>MOVEit Transfer SQL injection vulnerability</TableCell>
-                <TableCell><a href="http://example-link-1.com" target="_blank">Link</a></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>LOGS_DB</TableCell>
-                <TableCell>VUNERABILITY_SCANS</TableCell>
-                <TableCell>EXTENDED_VULN_SCAN_RESULTS</TableCell>
-                <TableCell>MOVEit Transfer SQL injection vulnerability</TableCell>
-                <TableCell><a href="http://example-log-link.com" target="_blank">Link</a></TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-      );
-    }
+    console.log('Bot message:', text);
 
     return text.split('\\n').map((line, i) => (
       <Typography key={i} variant="body2" sx={{ mb: 1, whiteSpace: 'pre-line' }}>
@@ -145,7 +96,8 @@ export default function Home() {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ display: 'flex', flexGrow: 1, height: '100%' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', pt: '64px' }}>
+
         <Drawer
           variant="permanent"
           sx={{
