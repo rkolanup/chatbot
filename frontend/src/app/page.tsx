@@ -46,13 +46,11 @@ export default function Home() {
         });
 
         const data = await response.json();
-        const responseText = data?.response?.replace(/\n/g, '\\n') || '🤖 I couldn’t find an answer.';
-        console.log('Response Text:', responseText);
         setMessages((prev) => [
           ...prev,
           {
             sender: 'bot',
-            text: responseText,
+            text: data?.response,
             table: data.rag_response,
           }
         ]);
@@ -77,15 +75,23 @@ export default function Home() {
 
   const renderBotText = (text: string, table?: any[]) => (
     console.log('Table:', table),
-    console.log('Text:', text),
+    console.log('Text:', text.split('\n\n')),
+
+
     <>
       <Typography sx={{ whiteSpace: 'pre-line' }}>
         {text.split('\n\n').map((line, i) => (
-          <span key={i}>
+          <span key={i} style={{ display: 'block', marginBottom: '1rem' }}>
             {line.includes('http') ? (
               <span
                 dangerouslySetInnerHTML={{
-                  __html: line.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>'),
+                  __html: line.replace(
+                    /\[(.*?)\]\((.*?)\)/g,
+                    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+                  ).replace(
+                    /(?<!href=")(https?:\/\/[^\s]+)/g,
+                    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+                  )
                 }}
               />
             ) : (
